@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>The Quest of Us</title>
+  <style>
+    :root{
+      --bg1:#0b1020; --bg2:#120a24;
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.70);
+      --accent:#ff4fb6; --accent2:#7c5cff;
+      --ok:#39d98a; --bad:#ff5c7a;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+      --radius: 22px;
+      --ring: 0 0 0 3px rgba(255,79,182,.25), 0 0 0 1px rgba(255,255,255,.05) inset;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:var(--font); color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 20% 10%, rgba(124,92,255,.35), transparent 60%),
+        radial-gradient(900px 600px at 90% 20%, rgba(255,79,182,.28), transparent 55%),
+        radial-gradient(900px 600px at 70% 90%, rgba(57,217,138,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      overflow-x:hidden;
+    }
+
+    .confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; display:none; }
+    .confetti.on{display:block}
+    .confetti i{
+      position:absolute; top:-12px; width:10px; height:18px; border-radius:3px; opacity:.95;
+      animation: fall linear forwards;
+    }
+    @keyframes fall{ to{ transform: translateY(110vh) rotate(540deg); opacity:1 } }
+
+    .app{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .shell{ width:min(980px, 100%); display:grid; gap:14px; }
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:14px 16px; border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      box-shadow: var(--shadow);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+    }
+    .brand{ display:flex; align-items:center; gap:10px; min-width:220px; }
+    .logo{
+      width:36px; height:36px; border-radius:12px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 35%),
+                linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 10px 25px rgba(255,79,182,.20);
+    }
+    .brand h1{ margin:0; font-size:14px; letter-spacing:.6px; text-transform:uppercase; color:rgba(255,255,255,.85); }
+    .brand p{ margin:0; font-size:12px; color:var(--muted); }
+
+    .progress{ flex:1; min-width:160px; display:flex; flex-direction:column; gap:8px; }
+    .progressRow{ display:flex; justify-content:space-between; gap:12px; font-size:12px; color:var(--muted); }
+    .bar{ height:10px; background: rgba(255,255,255,.08); border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.10); }
+    .bar>div{ height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius:999px; transition:width .35s ease; }
+
+    /* Proposal-themed key chips */
+    .keys{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; min-width:260px; }
+    .key{
+      padding:9px 10px;
+      border-radius:999px;
+      display:inline-flex; align-items:center; gap:8px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.55);
+      font-weight:900;
+      user-select:none;
+      font-size:12px;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .key .dot{
+      width:10px; height:10px; border-radius:99px;
+      background: rgba(255,255,255,.22);
+      display:inline-block;
+    }
+    .key.on{
+      background: linear-gradient(135deg, rgba(255,79,182,.22), rgba(124,92,255,.18));
+      border:1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.95);
+      box-shadow: 0 10px 25px rgba(124,92,255,.18);
+    }
+    .key.on .dot{
+      background: linear-gradient(135deg, rgba(255,79,182,.95), rgba(124,92,255,.95));
+      box-shadow: 0 0 0 3px rgba(255,79,182,.10);
+    }
+
+    .card{
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      box-shadow: var(--shadow);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+
+    .screen{ display:none; padding:22px; }
+    .screen.active{ display:block; animation: pop .22s ease; }
+    @keyframes pop{ from{ transform: translateY(8px); opacity:0 } to{ transform: translateY(0); opacity:1 } }
+
+    .title{ margin:0 0 8px 0; font-size:28px; letter-spacing:-.3px; }
+    .subtitle{ margin:0 0 18px 0; color:var(--muted); line-height:1.45; }
+
+    .panel{
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:14px;
+    }
+
+    .btnRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px; }
+
+    button{
+      appearance:none; border:0; cursor:pointer;
+      border-radius:14px;
+      padding:12px 14px;
+      font-weight:900;
+      color:rgba(255,255,255,.92);
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    button:active{ transform: translateY(1px); }
+    button.primary{
+      background: linear-gradient(135deg, rgba(255,79,182,.95), rgba(124,92,255,.95));
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 16px 30px rgba(255,79,182,.18);
+    }
+    button.ghost{ background: transparent; border-color: rgba(255,255,255,.14); color: rgba(255,255,255,.86); }
+    button.small{ padding:10px 12px; border-radius:12px; font-size:13px; }
+
+    input{
+      width:100%;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      color: rgba(255,255,255,.92);
+      outline:none;
+    }
+    input:focus{ box-shadow: var(--ring); }
+
+    .toast{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      color: rgba(255,255,255,.88);
+      display:none;
+    }
+    .toast.on{ display:block; }
+    .toast.ok{ border-color: rgba(57,217,138,.35); }
+    .toast.bad{ border-color: rgba(255,92,122,.35); }
+
+    .hint{
+      margin-top:10px;
+      padding:12px 14px;
+      border-radius:16px;
+      border:1px dashed rgba(255,255,255,.18);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.86);
+      display:none;
+      line-height:1.45;
+    }
+    .hint.on{ display:block; }
+
+    /* Hint modal */
+    .modal{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:18px;
+      z-index:999;
+    }
+    .modal.on{ display:flex; }
+    .modalCard{
+      width:min(520px, 100%);
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.08));
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      padding:16px;
+    }
+    .modalCard h3{ margin:0 0 8px 0; font-size:16px; letter-spacing:.2px; }
+    .modalCard p{ margin:0; color: rgba(255,255,255,.86); line-height:1.5; white-space:pre-wrap; }
+
+    /* Level UI */
+    .hueSwatches{ display:flex; gap:12px; flex-wrap:wrap; }
+    .swatch{
+      flex:1; min-width:220px;
+      height:76px; border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+      position:relative; overflow:hidden;
+    }
+    .swatch label{
+      position:absolute; left:12px; bottom:10px;
+      font-size:12px; font-weight:900; letter-spacing:.4px;
+      color: rgba(255,255,255,.92);
+      text-shadow: 0 2px 14px rgba(0,0,0,.35);
+    }
+    .meter{ font-size:13px; color: rgba(255,255,255,.85); margin-top:10px; }
+
+    .tiles{ display:flex; gap:10px; flex-wrap:wrap; }
+    .tile{
+      padding:12px 14px;
+      border-radius:14px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      font-weight:1000;
+      cursor:pointer;
+      user-select:none;
+      min-width:44px;
+      text-align:center;
+    }
+    .slots{
+      display:flex; gap:8px; flex-wrap:wrap;
+      padding:12px;
+      border-radius:18px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      min-height:62px;
+      align-items:center;
+    }
+    .slot{
+      width:36px; height:44px;
+      border-radius:12px;
+      display:grid; place-items:center;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.82);
+      font-weight:1000;
+    }
+
+    .memoryGrid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:10px;
+    }
+    @media (min-width:820px){
+      .memoryGrid{ grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    }
+    .memCard{
+      height:64px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      cursor:pointer;
+      display:grid; place-items:center;
+      font-weight:1000;
+      color: rgba(255,255,255,.88);
+      user-select:none;
+    }
+    .memCard.matched{ outline: 2px solid rgba(57,217,138,.50); box-shadow: 0 0 0 3px rgba(57,217,138,.12); cursor:default; }
+    .memCard .back{ color: rgba(255,255,255,.55); font-weight:900; }
+
+    .simonRow{ display:flex; gap:10px; flex-wrap:wrap; }
+    .pad{
+      width:78px; height:78px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      box-shadow: 0 12px 30px rgba(0,0,0,.20);
+    }
+    .pad.on{ box-shadow: 0 0 0 3px rgba(255,79,182,.25), 0 0 40px rgba(124,92,255,.35); background: rgba(255,255,255,.12); }
+
+    .ticket{
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: linear-gradient(135deg, rgba(255,79,182,.12), rgba(124,92,255,.10));
+      padding:14px;
+    }
+    .ticket h4{ margin:0 0 6px 0; }
+    .ticket p{ margin:0; color: rgba(255,255,255,.82); line-height:1.45; }
+    .movieInputs{ display:grid; grid-template-columns: 1fr; gap:10px; margin-top:12px; }
+    @media (min-width:820px){ .movieInputs{ grid-template-columns: repeat(3, 1fr); } }
+
+    .mazeWrap{ display:grid; grid-template-columns: 1fr; gap:12px; }
+    .maze{
+      width:100%;
+      max-width:420px;
+      aspect-ratio: 1 / 1;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      display:grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      overflow:hidden;
+    }
+    .cell{ border:1px solid rgba(255,255,255,.05); position:relative; }
+    .wall{ background: rgba(255,255,255,.10); }
+    .goal{ background: rgba(57,217,138,.18); }
+    .player::after{
+      content:"";
+      position:absolute; inset:18%;
+      border-radius:12px;
+      background: linear-gradient(135deg, rgba(255,79,182,.95), rgba(124,92,255,.95));
+      box-shadow: 0 12px 26px rgba(255,79,182,.18);
+    }
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .dpad{
+      display:grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px);
+      gap:8px;
+    }
+    .dpad button{ padding:0; width:44px; height:44px; border-radius:14px; font-weight:1000; }
+    .dpad .empty{ visibility:hidden; }
+
+    /* Pattern lock */
+    .patternWrap{
+      display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start;
+    }
+    .patternGrid{
+      width:260px;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:12px;
+      padding:12px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+    }
+    .pnode{
+      aspect-ratio: 1/1;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      display:grid; place-items:center;
+      font-weight:1000;
+      cursor:pointer;
+      user-select:none;
+      position:relative;
+      color: rgba(255,255,255,.86);
+    }
+    .pnode.active{
+      outline: 2px solid rgba(255,79,182,.40);
+      box-shadow: 0 0 0 3px rgba(255,79,182,.12);
+      background: rgba(255,255,255,.10);
+    }
+    .pnode.start::after{
+      content:"START";
+      position:absolute;
+      bottom:8px; left:50%;
+      transform:translateX(-50%);
+      font-size:10px;
+      color: rgba(255,255,255,.70);
+      font-weight:1000;
+      letter-spacing:.6px;
+    }
+    .patternInfo{ flex:1; min-width:240px; }
+    .patternTrack{
+      padding:12px;
+      border-radius:18px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      min-height:56px;
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      color: rgba(255,255,255,.90);
+      font-weight:900;
+    }
+
+    /* Final lock */
+    .lock{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+    .lockSlot{
+      padding:10px 12px;
+      border-radius:999px;
+      display:inline-flex; align-items:center; gap:8px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.70);
+      font-weight:1000;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.3px;
+    }
+    .lockSlot .dot{
+      width:10px; height:10px; border-radius:99px;
+      background: rgba(255,255,255,.22);
+      display:inline-block;
+    }
+    .lockSlot.on .dot{
+      background: linear-gradient(135deg, rgba(255,79,182,.95), rgba(124,92,255,.95));
+      box-shadow: 0 0 0 3px rgba(255,79,182,.10);
+    }
+
+    .finalBox{
+      padding:18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255,79,182,.18), rgba(124,92,255,.16));
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .finalBox h3{ margin:0 0 8px 0; font-size:20px; }
+    .finalBox p{ margin:0; color: rgba(255,255,255,.86); line-height:1.55; white-space:pre-wrap; }
+
+    .tiny{ font-size:12px; color: var(--muted); line-height:1.45; margin-top:8px; }
+    .divider{ height:12px; }
+  </style>
+</head>
+<body>
+
+  <!-- Background music (will start after first user interaction) -->
+  <audio id="bgm" loop preload="auto">
+    <source src="bg-music.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="confetti" id="confetti"></div>
+
+  <!-- Hint modal -->
+  <div class="modal" id="hintModal" aria-hidden="true">
+    <div class="modalCard">
+      <h3 id="hintModalTitle">Hint</h3>
+      <p id="hintModalText"></p>
+      <div class="btnRow">
+        <button class="primary" id="hintModalClose">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1 id="gameTitle">The Quest of Us</h1>
+            <p id="gameSubtitle">Earn the keys. Unlock the truth.</p>
+          </div>
+        </div>
+
+        <div class="progress">
+          <div class="progressRow">
+            <div id="levelLabel">Level 1 of 8</div>
+            <div id="hintCount">Hints: 0/3</div>
+          </div>
+          <div class="bar"><div id="barFill"></div></div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; justify-content:flex-end; flex-wrap:wrap; min-width:260px;">
+          <button class="small ghost" id="musicBtn">Music: Off</button>
+          <div class="keys" id="keysBar"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <!-- INTRO -->
+        <section class="screen active" id="s-intro">
+          <h2 class="title" id="introTitle">Goluuuu, welcome to a tiny quest.</h2>
+          <p class="subtitle" id="introCopy">
+            Seven mini-levels. Seven shards. One secret phrase.
+          </p>
+          <div class="panel">
+            <strong>How it works</strong>
+            <div class="tiny">
+              • You’ll solve quick puzzles based on our “us” moments.<br/>
+              • You get up to 3 hints total (tap Hint).<br/>
+              • If you type, spelling is forgiving.<br/>
+              • Music starts after your first tap (browser rule).
+            </div>
+          </div>
+          <div class="btnRow">
+            <button class="primary" id="btnStart">Start</button>
+          </div>
+        </section>
+
+        <!-- L1 Hue Lock -->
+        <section class="screen" id="s-hue">
+          <h2 class="title">Level 1 — Hue Lock</h2>
+          <p class="subtitle">Tune the slider until your pick matches the lock. Then tap “Unlock”.</p>
+
+          <div class="panel">
+            <div class="hueSwatches">
+              <div class="swatch" id="targetSwatch"><label>Target</label></div>
+              <div class="swatch" id="yourSwatch"><label>Your pick</label></div>
+            </div>
+            <div class="meter" id="hueMeter">Distance: —</div>
+            <input type="range" min="0" max="360" value="200" id="hueSlider"/>
+            <div class="btnRow">
+              <button class="primary" id="hueUnlock">Unlock</button>
+              <button class="small ghost" data-hint="hue">Hint</button>
+            </div>
+            <div class="hint" id="hint-hue"></div>
+          </div>
+
+          <div class="toast" id="toast-hue"></div>
+        </section>
+
+        <!-- L2 Fruit tiles -->
+        <section class="screen" id="s-tiles">
+          <h2 class="title">Level 2 — Name Assembly</h2>
+          <p class="subtitle">Click letter tiles in order to form your favourite fruit.</p>
+
+          <div class="panel">
+            <div class="slots" id="fruitSlots"></div>
+            <div class="divider"></div>
+            <div class="tiles" id="fruitTiles"></div>
+
+            <div class="btnRow">
+              <button class="small ghost" id="fruitReset">Reset</button>
+              <button class="small ghost" data-hint="tiles">Hint</button>
+            </div>
+            <div class="hint" id="hint-tiles"></div>
+            <div class="tiny">Spaces are ignored. Just build the letters.</div>
+          </div>
+
+          <div class="toast" id="toast-tiles"></div>
+        </section>
+
+        <!-- L3 Memory match -->
+        <section class="screen" id="s-memory">
+          <h2 class="title">Level 3 — Memory Match</h2>
+          <p class="subtitle">Match the pairs to earn the right to answer the shelf question.</p>
+
+          <div class="panel">
+            <div class="memoryGrid" id="memoryGrid"></div>
+
+            <div class="divider"></div>
+
+            <div id="freshenerGate" style="display:none;">
+              <strong>Final step:</strong>
+              <div class="tiny">Now type the mouth freshener you always pick.</div>
+              <div class="divider"></div>
+              <input id="freshenerInput" placeholder="Type it…" autocomplete="off"/>
+              <div class="btnRow">
+                <button class="primary" id="freshenerCheck">Check</button>
+              </div>
+            </div>
+
+            <div class="btnRow">
+              <button class="small ghost" data-hint="memory">Hint</button>
+            </div>
+            <div class="hint" id="hint-memory"></div>
+          </div>
+
+          <div class="toast" id="toast-memory"></div>
+        </section>
+
+        <!-- L4 Simon -->
+        <section class="screen" id="s-simon">
+          <h2 class="title">Level 4 — Rhythm Lock</h2>
+          <p class="subtitle">Watch the sequence. Repeat it. Then name our kiss.</p>
+
+          <div class="panel">
+            <div class="btnRow">
+              <button class="primary" id="simonPlay">Play sequence</button>
+              <button class="small ghost" data-hint="simon">Hint</button>
+            </div>
+            <div class="tiny" id="simonStatus">Sequence length: 5</div>
+            <div class="divider"></div>
+            <div class="simonRow" id="pads"></div>
+
+            <div class="divider"></div>
+            <div id="kissGate" style="display:none;">
+              <strong>Final step:</strong>
+              <div class="tiny">Type the name of our kiss.</div>
+              <div class="divider"></div>
+              <input id="kissInput" placeholder="Type it…" autocomplete="off"/>
+              <div class="btnRow">
+                <button class="primary" id="kissCheck">Check</button>
+              </div>
+            </div>
+
+            <div class="hint" id="hint-simon"></div>
+          </div>
+
+          <div class="toast" id="toast-simon"></div>
+        </section>
+
+        <!-- L5 Movie -->
+        <section class="screen" id="s-movie">
+          <h2 class="title">Level 5 — Movie Ticket Decoder</h2>
+          <p class="subtitle">Fill the 3 words using the hint. Earn the shard.</p>
+
+          <div class="panel ticket">
+            <h4>Ticket clue</h4>
+            <p>
+              • Word 1: A music group.<br/>
+              • Word 2: A wedding instrument sound.<br/>
+              • Word 3: The celebration.
+            </p>
+
+            <div class="movieInputs">
+              <input id="mw1" placeholder="Word 1" autocomplete="off"/>
+              <input id="mw2" placeholder="Word 2" autocomplete="off"/>
+              <input id="mw3" placeholder="Word 3" autocomplete="off"/>
+            </div>
+
+            <div class="btnRow">
+              <button class="primary" id="movieCheck">Check</button>
+              <button class="small ghost" data-hint="movie">Hint</button>
+            </div>
+
+            <div class="hint" id="hint-movie"></div>
+            <div class="tiny">Punctuation doesn’t matter; close spellings accepted.</div>
+          </div>
+
+          <div class="toast" id="toast-movie"></div>
+        </section>
+
+        <!-- L6 Maze -->
+        <section class="screen" id="s-maze">
+          <h2 class="title">Level 6 — Flatpack Run</h2>
+          <p class="subtitle">Reach the green exit. Then answer: first shopping store we visited together.</p>
+
+          <div class="panel mazeWrap">
+            <div class="maze" id="maze"></div>
+
+            <div class="controls">
+              <div class="dpad">
+                <button class="empty"></button>
+                <button id="up">↑</button>
+                <button class="empty"></button>
+                <button id="left">←</button>
+                <button id="down">↓</button>
+                <button id="right">→</button>
+                <button class="empty"></button>
+                <button class="empty"></button>
+                <button class="empty"></button>
+              </div>
+
+              <div style="flex:1; min-width:240px;">
+                <div class="tiny" id="mazeStatus">Move to the exit.</div>
+
+                <div id="storeGate" style="display:none;">
+                  <div class="divider"></div>
+                  <strong>Final step:</strong>
+                  <div class="tiny">Type the <b>first shopping store we visited together</b>.</div>
+                  <div class="divider"></div>
+                  <input id="storeInput" placeholder="Store name…" autocomplete="off"/>
+                  <div class="btnRow">
+                    <button class="primary" id="storeCheck">Check</button>
+                  </div>
+                </div>
+
+                <div class="btnRow">
+                  <button class="small ghost" id="mazeReset">Reset</button>
+                  <button class="small ghost" data-hint="maze">Hint</button>
+                </div>
+
+                <div class="hint" id="hint-maze"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="toast" id="toast-maze"></div>
+        </section>
+
+        <!-- L7 Pattern Lock -->
+        <section class="screen" id="s-wrap">
+          <h2 class="title">Level 7 — Gift Ribbon Lock</h2>
+          <p class="subtitle">Start at START. Tap the nodes in order to “wrap the ribbon” around the box.</p>
+
+          <div class="panel">
+            <div class="patternWrap">
+              <div class="patternGrid" id="patternGrid"></div>
+
+              <div class="patternInfo">
+                <strong>Goal</strong>
+                <div class="tiny">
+                  Tap the correct sequence (pattern lock style).
+                  Wrong node resets the pattern.
+                </div>
+                <div class="divider"></div>
+
+                <div class="patternTrack" id="patternTrack">Pattern: —</div>
+
+                <div class="btnRow">
+                  <button class="small ghost" id="patternReset">Reset pattern</button>
+                  <button class="small ghost" data-hint="wrap">Hint</button>
+                </div>
+
+                <div class="hint" id="hint-wrap"></div>
+
+                <div class="divider"></div>
+
+                <div id="cuddleGate" style="display:none;">
+                  <strong>Final step:</strong>
+                  <div class="tiny">Type our favourite cuddle position.</div>
+                  <div class="divider"></div>
+                  <input id="cuddleInput" placeholder="Type it…" autocomplete="off"/>
+                  <div class="btnRow">
+                    <button class="primary" id="cuddleCheck">Check</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="toast" id="toast-wrap"></div>
+        </section>
+
+        <!-- FINAL -->
+        <section class="screen" id="s-final">
+          <h2 class="title">Final — The Heart Lock</h2>
+          <p class="subtitle">All shards collected. Here’s the secret key you earned.</p>
+
+          <div class="panel">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:1000; letter-spacing:.4px;">SHARDS</div>
+                <div class="tiny">Every shard is a step you completed.</div>
+              </div>
+              <div class="lock" id="lockSlots"></div>
+            </div>
+
+            <div class="divider"></div>
+            <div class="tiny" id="secretKeyLine" style="font-size:14px; color:rgba(255,255,255,.88);">
+              Secret Key: <b>LOCKED</b>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="finalBox">
+            <h3 id="finalHeader">Okay Goluuuu… here’s the truth.</h3>
+            <p id="finalMsg"></p>
+          </div>
+
+          <div class="btnRow">
+            <button class="primary" id="yesBtn">Yes</button>
+            <button class="ghost" id="noBtn">Not yet</button>
+          </div>
+
+          <div class="toast" id="toast-final"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ================= CONFIG ================= */
+const CONFIG = {
+  yourName: "Moluuuu",
+  herName: "Goluuuu",
+  hintLimit: 3,
+
+  // 7 shards (7 levels). The *overall* secret key revealed at the end is "WE BELONG TOGETHER".
+  // First 3 shards show the words; remaining are hearts to feel “romantic collectible”.
+  keys: ["WE","BELONG","TOGETHER","♥","♥","♥","♥"],
+  secretKey: "WE BELONG TOGETHER",
+
+  answers: {
+    hueTarget: 215,
+    hueTolerance: 12,
+
+    fruit: "Thai guava",
+    freshener: "Saunf",
+    kiss: "Piggy",
+    movieWords: ["Band","Baaja","Baarat"],
+    storeAccepted: ["IKEA","Ikea"],
+    cuddle: "Gift wrap",
+
+    // Pattern sequence indexes 0..8 on 3x3:
+    // 0 1 2
+    // 3 4 5
+    // 6 7 8
+    pattern: [0,1,2,5,8,7,6,3]
+  },
+
+  hints: {
+    hue: "Slide until the distance reads “Perfect”. Hot/Warm means you’re close.",
+    tiles: "It’s two words: THAI + GUAVA. Build without spaces.",
+    memory: "Match all pairs first. After that, the input unlocks for the shelf question.",
+    simon: "Press Play, watch, then repeat the same order. If you fail, press Play again.",
+    movie: "Three words. Word 2 can be typed as BAJA or BAAJA.",
+    maze: "Use arrows on keyboard or the buttons. Walls are the pale blocks. Exit is green.",
+    wrap: "Start at START (top-left). Then go around the outside like wrapping a box."
+  },
+
+  final: {
+    header: "Okay Goluuuu… here’s the truth.",
+    message:
+`Goluuuu,
+
+I love the way our little things fit—our habits, our jokes, our comfort.
+From Blue to Thai guava to Saunf to our ‘Piggy’ kiss… it’s always been you.
+
+I don’t want this to be a ‘maybe’. I want this to be real.
+
+Will you be my girlfriend?
+
+— Moluuuu`,
+    yesResponse: "YES?! You just made me the happiest person. Come here. Right now.",
+    noResponse: "That button is clearly a bug. Try the other one (or come hug me and we’ll renegotiate)."
+  }
+};
+/* ========================================= */
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+const screens = ["#s-intro","#s-hue","#s-tiles","#s-memory","#s-simon","#s-movie","#s-maze","#s-wrap","#s-final"];
+
+let state = {
+  screen: 0,
+  hintsUsed: 0,
+  earned: new Array(CONFIG.keys.length).fill(false),
+  musicEnabled: false
+};
+
+function normalize(s){
+  return (s ?? "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[\.\,\!\?\:\;\'\"\(\)\[\]\{\}\-]/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function setTopUI(){
+  $("#introTitle").textContent = `${CONFIG.herName}, welcome to a tiny quest.`;
+  $("#gameTitle").textContent = "The Quest of Us";
+  $("#gameSubtitle").textContent = "Earn the shards. Unlock the secret key.";
+
+  const total = screens.length - 1;
+  const shown = Math.min(Math.max(state.screen, 1), total);
+  $("#levelLabel").textContent = `Level ${shown} of ${total}`;
+  $("#hintCount").textContent = `Hints: ${state.hintsUsed}/${CONFIG.hintLimit}`;
+  $("#barFill").style.width = `${Math.min(100, (state.screen/(screens.length-1))*100)}%`;
+
+  const kb = $("#keysBar");
+  kb.innerHTML = "";
+  CONFIG.keys.forEach((word,i)=>{
+    const d = document.createElement("div");
+    d.className = "key" + (state.earned[i] ? " on" : "");
+    d.innerHTML = `<span class="dot"></span>${state.earned[i] ? word : "LOCKED"}`;
+    kb.appendChild(d);
+  });
+}
+
+function showScreen(i){
+  state.screen = i;
+  screens.forEach((id, idx)=> $(id).classList.toggle("active", idx===i));
+  setTopUI();
+  if(i === screens.length-1) renderFinal();
+}
+
+function toast(id, kind, msg){
+  const el = $(id);
+  if(!el) return;
+  el.className = `toast on ${kind}`;
+  el.textContent = msg;
+}
+
+function awardKey(keyIndex, toastId, msg){
+  if(state.earned[keyIndex]) return;
+  state.earned[keyIndex] = true;
+  setTopUI();
+  if(toastId) toast(toastId, "ok", msg || `Unlocked shard: ${CONFIG.keys[keyIndex]}`);
+
+  setTimeout(()=>{
+    if(state.earned.every(Boolean)){
+      showScreen(screens.length-1);
+    } else {
+      showScreen(state.screen + 1);
+    }
+  }, 850);
+}
+
+/* ---------- Music ---------- */
+function initMusic(){
+  const audio = document.getElementById("bgm");
+  const btn = document.getElementById("musicBtn");
+  if(!audio || !btn) return;
+
+  async function play(){
+    try{
+      audio.volume = 0.35; // adjust 0.0 - 1.0
+      await audio.play();
+      state.musicEnabled = true;
+      btn.textContent = "Music: On";
+    } catch(e){
+      state.musicEnabled = false;
+      btn.textContent = "Music: Tap to enable";
+    }
+  }
+  function pause(){
+    audio.pause();
+    state.musicEnabled = false;
+    btn.textContent = "Music: Off";
+  }
+
+  btn.addEventListener("click", ()=> {
+    if(state.musicEnabled) pause();
+    else play();
+  });
+
+  // Start music on first user interaction anywhere
+  const firstInteraction = async () => {
+    if(!state.musicEnabled) await play();
+    window.removeEventListener("pointerdown", firstInteraction);
+    window.removeEventListener("keydown", firstInteraction);
+  };
+  window.addEventListener("pointerdown", firstInteraction);
+  window.addEventListener("keydown", firstInteraction);
+}
+
+/* ---------- Hints (modal + inline) ---------- */
+function openHint(which){
+  if(state.hintsUsed >= CONFIG.hintLimit){
+    const t = document.querySelector(".screen.active .toast");
+    if(t) { t.className = "toast on bad"; t.textContent = "No hints left (you’ve got this)."; }
+    return;
+  }
+  state.hintsUsed++;
+  setTopUI();
+
+  const text = CONFIG.hints[which] || "No hint available.";
+  const inline = $(`#hint-${which}`);
+  if(inline){
+    inline.textContent = text;
+    inline.classList.add("on");
+  }
+
+  $("#hintModalTitle").textContent = `Hint (${state.hintsUsed}/${CONFIG.hintLimit})`;
+  $("#hintModalText").textContent = text;
+  $("#hintModal").classList.add("on");
+  $("#hintModal").setAttribute("aria-hidden","false");
+}
+
+function initHints(){
+  $$("[data-hint]").forEach(btn=>{
+    btn.addEventListener("click", ()=> openHint(btn.getAttribute("data-hint")));
+  });
+  $("#hintModalClose").onclick = ()=>{
+    $("#hintModal").classList.remove("on");
+    $("#hintModal").setAttribute("aria-hidden","true");
+  };
+  $("#hintModal").addEventListener("click", (e)=>{
+    if(e.target.id === "hintModal") $("#hintModalClose").click();
+  });
+}
+
+/* ===================== Level 1: Hue lock ===================== */
+function hueDistance(a,b){
+  let d = Math.abs(a-b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+function initHue(){
+  const target = CONFIG.answers.hueTarget;
+  const slider = $("#hueSlider");
+  const targetSwatch = $("#targetSwatch");
+  const yourSwatch = $("#yourSwatch");
+  const meter = $("#hueMeter");
+
+  function paint(){
+    const v = Number(slider.value);
+    targetSwatch.style.background = `hsl(${target} 80% 55%)`;
+    yourSwatch.style.background = `hsl(${v} 80% 55%)`;
+    const dist = hueDistance(v, target);
+    let feel = "Cold";
+    if(dist <= CONFIG.answers.hueTolerance) feel = "Perfect";
+    else if(dist <= CONFIG.answers.hueTolerance + 10) feel = "Hot";
+    else if(dist <= CONFIG.answers.hueTolerance + 25) feel = "Warm";
+    meter.textContent = `Distance: ${dist.toFixed(0)}° — ${feel}`;
+  }
+  slider.addEventListener("input", paint);
+  paint();
+
+  $("#hueUnlock").onclick = () => {
+    const dist = hueDistance(Number(slider.value), target);
+    if(dist <= CONFIG.answers.hueTolerance){
+      awardKey(0, "#toast-hue", `Unlocked shard: ${CONFIG.keys[0]}`);
+    } else {
+      toast("#toast-hue", "bad", "Not quite—tune it a bit more.");
+    }
+  };
+}
+
+/* ===================== Level 2: Fruit tiles ===================== */
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let fruitBuild = [];
+function initTiles(){
+  const answer = normalize(CONFIG.answers.fruit).replaceAll(" ", "");
+  const letters = answer.toUpperCase().split("");
+  const tiles = $("#fruitTiles");
+  const slots = $("#fruitSlots");
+
+  function renderSlots(){
+    slots.innerHTML = "";
+    for(let i=0;i<letters.length;i++){
+      const s = document.createElement("div");
+      s.className = "slot";
+      s.textContent = fruitBuild[i] || "";
+      slots.appendChild(s);
+    }
+  }
+
+  tiles.innerHTML = "";
+  fruitBuild = [];
+
+  const shuffled = shuffle(letters);
+  shuffled.forEach((ch)=>{
+    const t = document.createElement("div");
+    t.className = "tile";
+    t.textContent = ch;
+    t.addEventListener("click", ()=>{
+      if(fruitBuild.length >= letters.length) return;
+      fruitBuild.push(ch);
+      t.style.opacity = ".35";
+      t.style.pointerEvents = "none";
+      renderSlots();
+
+      const built = fruitBuild.join("").toLowerCase();
+      if(built.length === letters.length){
+        if(built === answer){
+          awardKey(1, "#toast-tiles", `Unlocked shard: ${CONFIG.keys[1]}`);
+        } else {
+          toast("#toast-tiles","bad","That order doesn’t spell it—hit Reset and try again.");
+        }
+      }
+    });
+    tiles.appendChild(t);
+  });
+
+  $("#fruitReset").onclick = ()=> initTiles();
+
+  renderSlots();
+  toast("#toast-tiles","ok","Build the fruit name from tiles.");
+}
+
+/* ===================== Level 3: Memory match + freshener ===================== */
+let memFirst = null;
+let memLock = false;
+let memMatched = 0;
+
+function initMemory(){
+  memFirst = null;
+  memLock = false;
+  memMatched = 0;
+
+  const pairs = ["Blue","Thai","Guava","Saunf","Band","Baarat"];
+  const cards = shuffle([...pairs, ...pairs]).map((v, idx)=>({id: idx, value: v, revealed:false, matched:false}));
+
+  const grid = $("#memoryGrid");
+  grid.innerHTML = "";
+
+  function render(){
+    grid.innerHTML = "";
+    cards.forEach((c)=>{
+      const d = document.createElement("div");
+      d.className = "memCard" + (c.matched ? " matched" : "");
+      if(c.revealed || c.matched){
+        d.textContent = c.value;
+      } else {
+        d.innerHTML = `<span class="back">?</span>`;
+      }
+      d.onclick = ()=>flip(c.id);
+      grid.appendChild(d);
+    });
+  }
+
+  function flip(id){
+    if(memLock) return;
+    const c = cards.find(x=>x.id===id);
+    if(!c || c.matched || c.revealed) return;
+
+    c.revealed = true;
+    render();
+
+    if(!memFirst){ memFirst = c; return; }
+
+    memLock = true;
+    const a = memFirst, b = c;
+
+    setTimeout(()=>{
+      if(a.value === b.value){
+        a.matched = true; b.matched = true;
+        memMatched++;
+        toast("#toast-memory","ok",`Match! (${memMatched}/6)`);
+        if(memMatched === pairs.length){
+          $("#freshenerGate").style.display = "block";
+          toast("#toast-memory","ok","Nice. Now answer the shelf question.");
+        }
+      } else {
+        a.revealed = false; b.revealed = false;
+        toast("#toast-memory","bad","Not a match—try again.");
+      }
+      memFirst = null;
+      memLock = false;
+      render();
+    }, 520);
+  }
+
+  $("#freshenerGate").style.display = "none";
+  $("#freshenerInput").value = "";
+
+  $("#freshenerCheck").onclick = () => {
+    if(memMatched !== pairs.length){
+      toast("#toast-memory","bad","Finish the matches first.");
+      return;
+    }
+    const guess = normalize($("#freshenerInput").value);
+    if(guess === normalize(CONFIG.answers.freshener)){
+      awardKey(2, "#toast-memory", `Unlocked shard: ${CONFIG.keys[2]}`);
+    } else {
+      toast("#toast-memory","bad","Not quite—try again.");
+    }
+  };
+
+  render();
+  toast("#toast-memory","ok","Match all pairs to unlock the shelf question.");
+}
+
+/* ===================== Level 4: Simon + kiss ===================== */
+let simonSeq = [];
+let simonInput = [];
+let simonBusy = false;
+let simonUnlocked = false;
+
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+function initSimon(){
+  const pads = $("#pads");
+  pads.innerHTML = "";
+
+  const padCount = 4;
+  const seqLen = 5;
+  $("#simonStatus").textContent = `Sequence length: ${seqLen}`;
+
+  for(let i=0;i<padCount;i++){
+    const b = document.createElement("button");
+    b.className = "pad";
+    b.setAttribute("aria-label", "pad " + (i+1));
+    b.onclick = ()=> onPadPress(i);
+    pads.appendChild(b);
+  }
+
+  function flash(i){
+    const el = pads.children[i];
+    el.classList.add("on");
+    setTimeout(()=>el.classList.remove("on"), 220);
+  }
+
+  async function play(){
+    simonBusy = true;
+    simonInput = [];
+    $("#kissGate").style.display = "none";
+    simonUnlocked = false;
+    toast("#toast-simon","ok","Watch…");
+    await sleep(250);
+    for(const i of simonSeq){
+      flash(i);
+      await sleep(380);
+    }
+    simonBusy = false;
+    toast("#toast-simon","ok","Your turn. Repeat it.");
+  }
+
+  function buildNew(){
+    simonSeq = Array.from({length: seqLen}, ()=>Math.floor(Math.random()*padCount));
+    simonInput = [];
+  }
+
+  function onPadPress(i){
+    if(simonBusy || simonSeq.length === 0) return;
+    flash(i);
+    simonInput.push(i);
+
+    for(let k=0;k<simonInput.length;k++){
+      if(simonInput[k] !== simonSeq[k]){
+        toast("#toast-simon","bad","Wrong sequence. Press “Play sequence” and try again.");
+        simonInput = [];
+        return;
+      }
+    }
+
+    if(simonInput.length === simonSeq.length){
+      toast("#toast-simon","ok","Sequence cleared. Now name our kiss.");
+      $("#kissGate").style.display = "block";
+      simonUnlocked = true;
+    }
+  }
+
+  $("#simonPlay").onclick = async () => {
+    buildNew();
+    await play();
+  };
+
+  $("#kissInput").value = "";
+  $("#kissGate").style.display = "none";
+
+  $("#kissCheck").onclick = () => {
+    if(!simonUnlocked){
+      toast("#toast-simon","bad","Do the sequence first.");
+      return;
+    }
+    const guess = normalize($("#kissInput").value);
+    if(guess === normalize(CONFIG.answers.kiss)){
+      awardKey(3, "#toast-simon", `Unlocked shard: ${CONFIG.keys[3]}`);
+    } else {
+      toast("#toast-simon","bad","Nope—try again.");
+    }
+  };
+
+  toast("#toast-simon","ok","Press “Play sequence”.");
+}
+
+/* ===================== Level 5: Movie 3-word check ===================== */
+function initMovie(){
+  $("#mw1").value = "";
+  $("#mw2").value = "";
+  $("#mw3").value = "";
+
+  $("#movieCheck").onclick = () => {
+    const g1 = normalize($("#mw1").value);
+    const g2 = normalize($("#mw2").value);
+    const g3 = normalize($("#mw3").value);
+
+    const [a1,a2,a3] = CONFIG.answers.movieWords.map(normalize);
+    const ok2 = (g2 === a2) || (g2 === "baja") || (g2 === "baaja");
+
+    if(g1 === a1 && ok2 && g3 === a3){
+      awardKey(4, "#toast-movie", `Unlocked shard: ${CONFIG.keys[4]}`);
+    } else {
+      toast("#toast-movie","bad","Not quite—check each word.");
+    }
+  };
+
+  toast("#toast-movie","ok","Fill all 3 words.");
+}
+
+/* ===================== Level 6: Maze + store ===================== */
+const MAZE = {
+  w: 9, h: 9,
+  grid: [
+    [0,1,0,0,0,1,0,0,0],
+    [0,1,0,1,0,1,0,1,0],
+    [0,0,0,1,0,0,0,1,0],
+    [1,1,0,1,1,1,0,1,0],
+    [0,0,0,0,0,0,0,1,0],
+    [0,1,1,1,1,0,1,1,0],
+    [0,0,0,0,1,0,0,0,0],
+    [0,1,0,0,1,1,1,1,0],
+    [0,1,0,0,0,0,0,0,2],
+  ],
+  start: {x:0,y:0},
+  goal: {x:8,y:8}
+};
+let player = {x:0,y:0};
+let mazeReached = false;
+
+function initMaze(){
+  player = {...MAZE.start};
+  mazeReached = false;
+  $("#storeGate").style.display = "none";
+  $("#storeInput").value = "";
+  $("#mazeStatus").textContent = "Move to the exit.";
+  renderMaze();
+
+  function tryMove(dx,dy){
+    if(mazeReached) return;
+    const nx = player.x + dx;
+    const ny = player.y + dy;
+    if(nx<0||ny<0||nx>=MAZE.w||ny>=MAZE.h) return;
+    if(MAZE.grid[ny][nx] === 1) return;
+    player = {x:nx,y:ny};
+    renderMaze();
+    if(nx===MAZE.goal.x && ny===MAZE.goal.y){
+      mazeReached = true;
+      $("#mazeStatus").textContent = "Exit reached. Now answer the store question.";
+      $("#storeGate").style.display = "block";
+      toast("#toast-maze","ok","You made it. Store question unlocked.");
+    }
+  }
+
+  $("#up").onclick = ()=>tryMove(0,-1);
+  $("#down").onclick = ()=>tryMove(0,1);
+  $("#left").onclick = ()=>tryMove(-1,0);
+  $("#right").onclick = ()=>tryMove(1,0);
+
+  window.onkeydown = (e)=>{
+    if(!$("#s-maze").classList.contains("active")) return;
+    if(e.key==="ArrowUp") tryMove(0,-1);
+    if(e.key==="ArrowDown") tryMove(0,1);
+    if(e.key==="ArrowLeft") tryMove(-1,0);
+    if(e.key==="ArrowRight") tryMove(1,0);
+  };
+
+  $("#mazeReset").onclick = ()=>initMaze();
+
+  $("#storeCheck").onclick = ()=>{
+    if(!mazeReached){
+      toast("#toast-maze","bad","Reach the exit first.");
+      return;
+    }
+    const guess = normalize($("#storeInput").value);
+    const ok = CONFIG.answers.storeAccepted.some(s => normalize(s) === guess);
+    if(ok){
+      awardKey(5, "#toast-maze", `Unlocked shard: ${CONFIG.keys[5]}`);
+    } else {
+      toast("#toast-maze","bad","Not quite—try again.");
+    }
+  };
+
+  toast("#toast-maze","ok","Navigate to the green exit.");
+}
+
+function renderMaze(){
+  const el = $("#maze");
+  el.innerHTML = "";
+  for(let y=0;y<MAZE.h;y++){
+    for(let x=0;x<MAZE.w;x++){
+      const c = document.createElement("div");
+      c.className = "cell";
+      if(MAZE.grid[y][x]===1) c.classList.add("wall");
+      if(MAZE.grid[y][x]===2) c.classList.add("goal");
+      if(player.x===x && player.y===y) c.classList.add("player");
+      el.appendChild(c);
+    }
+  }
+}
+
+/* ===================== Level 7: Pattern lock + cuddle ===================== */
+let patternProgress = [];
+
+function initPattern(){
+  patternProgress = [];
+  $("#patternTrack").textContent = "Pattern: —";
+  $("#cuddleGate").style.display = "none";
+  $("#cuddleInput").value = "";
+
+  const grid = $("#patternGrid");
+  grid.innerHTML = "";
+
+  for(let i=0;i<9;i++){
+    const n = document.createElement("div");
+    n.className = "pnode";
+    n.textContent = (i+1);
+    if(i===CONFIG.answers.pattern[0]) n.classList.add("start");
+    n.onclick = ()=>tapNode(i);
+    grid.appendChild(n);
+  }
+
+  function renderPattern(){
+    const nodes = $$("#patternGrid .pnode");
+    nodes.forEach((node, idx)=>{
+      node.classList.toggle("active", patternProgress.includes(idx));
+    });
+    $("#patternTrack").textContent = patternProgress.length
+      ? ("Pattern: " + patternProgress.map(x=>x+1).join(" → "))
+      : "Pattern: —";
+  }
+
+  function resetPattern(msg){
+    patternProgress = [];
+    renderPattern();
+    if(msg) toast("#toast-wrap","bad", msg);
+  }
+
+  function tapNode(i){
+    const required = CONFIG.answers.pattern;
+    const step = patternProgress.length;
+
+    if(step === 0 && i !== required[0]){
+      resetPattern("Start at START.");
+      return;
+    }
+
+    if(patternProgress.includes(i)) return;
+
+    if(i !== required[step]){
+      resetPattern("Wrong step—pattern reset. Try again.");
+      return;
+    }
+
+    patternProgress.push(i);
+    renderPattern();
+
+    if(patternProgress.length === required.length){
+      $("#cuddleGate").style.display = "block";
+      toast("#toast-wrap","ok","Ribbon wrapped. Now type the cuddle.");
+    }
+  }
+
+  $("#patternReset").onclick = ()=> resetPattern("Pattern reset.");
+
+  $("#cuddleCheck").onclick = ()=>{
+    if(patternProgress.length !== CONFIG.answers.pattern.length){
+      toast("#toast-wrap","bad","Finish the ribbon pattern first.");
+      return;
+    }
+    const guess = normalize($("#cuddleInput").value);
+    if(guess === normalize(CONFIG.answers.cuddle)){
+      awardKey(6, "#toast-wrap", `Unlocked shard: ${CONFIG.keys[6]}`);
+    } else {
+      toast("#toast-wrap","bad","Not quite—try again.");
+    }
+  };
+
+  renderPattern();
+  toast("#toast-wrap","ok","Start at START and wrap the ribbon around.");
+}
+
+/* ===================== Final render ===================== */
+function renderFinal(){
+  const lock = $("#lockSlots");
+  lock.innerHTML = "";
+  CONFIG.keys.forEach((word,i)=>{
+    const s = document.createElement("div");
+    s.className = "lockSlot" + (state.earned[i] ? " on" : "");
+    s.innerHTML = `<span class="dot"></span>${state.earned[i] ? word : "•"}`;
+    lock.appendChild(s);
+  });
+
+  $("#finalHeader").textContent = CONFIG.final.header;
+  $("#finalMsg").textContent = CONFIG.final.message;
+
+  // Reveal the overall secret key only if ALL shards are earned
+  $("#secretKeyLine").innerHTML = state.earned.every(Boolean)
+    ? `Secret Key: <b>${CONFIG.secretKey}</b>`
+    : `Secret Key: <b>LOCKED</b>`;
+
+  $("#yesBtn").onclick = ()=>{
+    if(!state.earned.every(Boolean)){
+      toast("#toast-final","bad","Finish the levels first.");
+      return;
+    }
+    fireConfetti();
+    toast("#toast-final","ok", CONFIG.final.yesResponse);
+  };
+  $("#noBtn").onclick = ()=> toast("#toast-final","bad", CONFIG.final.noResponse);
+}
+
+function fireConfetti(){
+  const root = $("#confetti");
+  root.innerHTML = "";
+  root.classList.add("on");
+  const colors = ["#ff4fb6","#7c5cff","#39d98a","#ffd166","#4cc9f0","#f72585"];
+  for(let i=0;i<90;i++){
+    const p = document.createElement("i");
+    p.style.left = (Math.random()*100) + "vw";
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDuration = (2.6 + Math.random()*1.7) + "s";
+    p.style.opacity = (0.75 + Math.random()*0.25).toFixed(2);
+    root.appendChild(p);
+  }
+  setTimeout(()=>root.classList.remove("on"), 4200);
+}
+
+/* ===================== Boot ===================== */
+function init(){
+  $("#introTitle").textContent = `${CONFIG.herName}, welcome to a tiny quest.`;
+  $("#introCopy").textContent = "Seven mini-levels. Seven shards. One secret key.\nEarn it.";
+
+  $("#btnStart").onclick = ()=> showScreen(1);
+
+  initHints();
+  initMusic();
+
+  initHue();
+  initTiles();
+  initMemory();
+  initSimon();
+  initMovie();
+  initMaze();
+  initPattern();
+
+  setTopUI();
+}
+init();
+</script>
+</body>
+</html>
